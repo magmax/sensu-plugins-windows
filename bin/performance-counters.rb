@@ -54,6 +54,22 @@ class GenericMetric < Sensu::Plugin::Metric::CLI::Graphite
          short: '-f file',
          default: 'metrics.yaml'
 
+  def check_min(data)
+    return true unless data.include? 'min'
+    min = data['min']
+    return true unless v.to_f < min.to_f
+    puts "CHECK ERROR: Value #{v} is higher than #{min} for key #{key}"
+    false
+  end
+
+  def check_max(data)
+    return true unless data.include? 'max'
+    max = data['max']
+    return true unless v.to_f > max.to_f
+    puts "CHECK ERROR: Value #{v} is lower than #{max} for key \\#{key}"
+    false
+  end
+
   def run
     metrics = YAML.load_file(config[:file])
 
@@ -81,20 +97,13 @@ class GenericMetric < Sensu::Plugin::Metric::CLI::Graphite
 
           output name, value, timestamp
 
-          if data.include? 'min'
-            min = data['min']
-            if v.to_f < min.to_f
-              puts "CHECK ERROR: Value #{v} is higher than #{min} for key #{key}"
-              is_ok = false
-            end
-          end
-          if data.include? 'max'
-            max = data['max']
-            if v.to_f > max.to_f
-              puts "CHECK ERROR: Value #{v} is lower than #{max} for key \\#{key}"
-              is_ok = false
-            end
-          end
+          # if min and max keys not included then skip the rest
+          next unless data.include?('min') || data.include?('max')
+
+          min_ok = check_min(data)
+          max_ok = check_max(data)
+          # if min or max are both true then dont set is_ok = false
+          is_ok = false unless min_ok && max_ok
         end
       end
     end
