@@ -54,19 +54,19 @@ class GenericMetric < Sensu::Plugin::Metric::CLI::Graphite
          short: '-f file',
          default: 'metrics.yaml'
 
-  def check_min(data, k, v, key)
+  def check_min(data, key, value)
     return true unless data.include? 'min'
     min = data['min']
     return true unless v.to_f < min.to_f
-    puts "CHECK ERROR: Value #{v} is less than #{min} for key #{key}"
+    puts "CHECK ERROR: Value #{value} is less than #{min} for key #{key}"
     false
   end
 
-  def check_max(data, k ,v, key)
+  def check_max(data, key, value)
     return true unless data.include? 'max'
     max = data['max']
     return true unless v.to_f > max.to_f
-    puts "CHECK ERROR: Value #{v} is greater than #{max} for key #{key}"
+    puts "CHECK ERROR: Value #{value} is greater than #{max} for key #{key}"
     false
   end
 
@@ -77,14 +77,13 @@ class GenericMetric < Sensu::Plugin::Metric::CLI::Graphite
     is_ok = true
 
     flatten = counters.map { |s| "\"#{s}\"" }.join(' ')
-    #puts "flatten = #{flatten}"
     timestamp = Time.now.utc.to_i
     IO.popen("typeperf -sc 1 #{flatten} ") do |io|
       CSV.parse(io.read, headers: true) do |row|
         row.each do |k, v|
           next unless v && k
           break if row.to_s.start_with? 'Exiting'
-          #puts "k = #{k}"
+
           key = k.split('\\', 4)[3]
           data = metrics.fetch("\\#{key}", nil)
           next unless data
@@ -101,8 +100,8 @@ class GenericMetric < Sensu::Plugin::Metric::CLI::Graphite
           next unless data.include?('min') || data.include?('max')
 
           # if values is less then min dont bother checking max
-          next unless is_ok = check_min(data, k, v, key)
-          is_ok = check_max(data, k, v, key)
+          next unless (is_ok = check_min(data, key, value))
+          is_ok = check_max(data, key, value)
         end
       end
     end
