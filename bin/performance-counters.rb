@@ -57,7 +57,7 @@ class GenericMetric < Sensu::Plugin::Metric::CLI::Graphite
   def check_min(data, key, value)
     return true unless data.include? 'min'
     min = data['min']
-    return true unless v.to_f < min.to_f
+    return true unless value.to_f < min.to_f
     puts "CHECK ERROR: Value #{value} is less than #{min} for key #{key}"
     false
   end
@@ -65,7 +65,7 @@ class GenericMetric < Sensu::Plugin::Metric::CLI::Graphite
   def check_max(data, key, value)
     return true unless data.include? 'max'
     max = data['max']
-    return true unless v.to_f > max.to_f
+    return true unless value.to_f > max.to_f
     puts "CHECK ERROR: Value #{value} is greater than #{max} for key #{key}"
     false
   end
